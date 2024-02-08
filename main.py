@@ -28,7 +28,7 @@ def get_businesses(zip_code):
     business_list = []
     unique_businesses = set()
     scroll_attempts = 0
-    max_scroll_attempts = 500
+    max_scroll_attempts = 50
     Time_delay = 3  # Time delay for content loading
     scroll_height = 2500  # Scroll height
     last_processed_index = -1  # Last processed business index
