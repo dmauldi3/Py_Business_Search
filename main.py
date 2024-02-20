@@ -33,7 +33,9 @@ def get_lat_long(location):
 # Type in City, State or Zip to search area
 City = "San Antonio, TX"
 latitude, longitude = get_lat_long(City)
-print("Searching for stone countertop businesses in:", City)
+search_keyword = "granite countertops"  # Add this line to set your search keyword
+print(f"Searching for {search_keyword} businesses in:", City)
+Search_Attempts = 1
 
 
 
@@ -54,7 +56,7 @@ def get_businesses(location, existing_data):
     new_business_count = 0  # Initialize a counter for new businesses
 
     # Construct the URL and print it for debugging
-    base_url = f'https://www.google.com/maps/search/stone+countertops/@{latitude},{longitude},15z/data=!3m1!4b1!4m2!2m1!6e6'
+    base_url = f'https://www.google.com/maps/search/{search_keyword.replace(" ", "+")}/@{latitude},{longitude},15z/data=!3m1!4b1!4m2!2m1!6e6'
     print(f"URL: {base_url}")
     driver.get(base_url)
 
@@ -65,7 +67,7 @@ def get_businesses(location, existing_data):
     business_list = []
     unique_businesses = set()
     scroll_attempts = 0
-    max_scroll_attempts = 50 # Maximum number of scrolled businesses searches. 10 = 100 businesses
+    max_scroll_attempts = Search_Attempts # Maximum number of scrolled businesses searches. 10 = 100 businesses
     Time_delay = 3  # Time delay for content loading
     scroll_height = 2500  # Scroll height
     last_processed_index = -1  # Last processed business index
