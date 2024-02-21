@@ -142,7 +142,6 @@ def get_businesses(location, existing_data):
             print("Timeout waiting for new elements, attempting to scroll again.")
 
         new_height = driver.execute_script("return document.body.scrollHeight")
-        print(f"New height after scroll: {new_height}")
 
         scroll_attempts += 1
 
@@ -203,11 +202,14 @@ def save_to_excel(business_list, file_path="Businesses.xlsx"):
 if __name__ == "__main__":
     file_path = "Businesses.xlsx"
     existing_data = read_existing_data(file_path)
+    initial_unique_count = len(existing_data)
 
-    businesses, address_count, new_business_count = get_businesses(City, existing_data)
+    businesses, _, _ = get_businesses(City, existing_data)
     if businesses:
-        print(f"Found {len(businesses)} new businesses.")
         save_to_excel(businesses, file_path)
+
+        # read the data again after update
+        updated_data = read_existing_data(file_path)
+        print(f"Number of new businesses added: {len(updated_data) - initial_unique_count}")
     else:
         print("No new businesses found.")
-    print(f"Number of new addresses added: {new_business_count}")  # Print the count of new addresses added
