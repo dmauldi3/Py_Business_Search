@@ -4,12 +4,13 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
 from selenium.webdriver.chrome.options import Options
-import openpyxl
+import pandas as pd
 from openpyxl import load_workbook
 from openpyxl import Workbook
 import time
 from geopy.geocoders import Nominatim
 import geopy
+import re
 
 
 def get_lat_long(location):
@@ -29,14 +30,12 @@ def get_lat_long(location):
         return None, None
 
 
-
 # Type in City, State or Zip to search area
-City = "San Antonio, TX"
+City = "Houston, TX"
 latitude, longitude = get_lat_long(City)
 search_keyword = "granite countertops"  # Add this line to set your search keyword
 print(f"Searching for {search_keyword} businesses in:", City)
-Search_Attempts = 1
-
+Search_Attempts = 50
 
 
 def get_businesses(location, existing_data):
@@ -44,14 +43,13 @@ def get_businesses(location, existing_data):
     if latitude is None or longitude is None:
         return []
 
-
     # Initialize the Chrome driver with headless options
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--window-size=2560,1440")
     driver = webdriver.Chrome(options=chrome_options)
 
-     #driver = webdriver.Chrome()
+    # driver = webdriver.Chrome()
 
     new_business_count = 0  # Initialize a counter for new businesses
 
@@ -67,7 +65,7 @@ def get_businesses(location, existing_data):
     business_list = []
     unique_businesses = set()
     scroll_attempts = 0
-    max_scroll_attempts = Search_Attempts # Maximum number of scrolled businesses searches. 10 = 100 businesses
+    max_scroll_attempts = Search_Attempts  # Maximum number of scrolled businesses searches. 10 = 100 businesses
     Time_delay = 3  # Time delay for content loading
     scroll_height = 2500  # Scroll height
     last_processed_index = -1  # Last processed business index
@@ -103,13 +101,17 @@ def get_businesses(location, existing_data):
                     if (name, address) in existing_data or (name, address) in unique_businesses:
                         continue  # Skip businesses already in the Excel file or already processed
 
-                    # Save the business information if it's unique
-                    if (name, address) not in unique_businesses:
-                        business_list.append({'Name': name, 'Address': address})
-                        unique_businesses.add((name, address))
-                        new_business_count += 1  # Increment the new business counter
-                        print(f"Collected: {name}, {address}")
-                        last_processed_index = i  # Update last processed index
+                        # Only add the business if it's not already known and the address format is valid
+                    if (name, address) not in existing_data and (name, address) not in unique_businesses:
+                        if is_valid_address_format(address):
+                            business_list.append({'Name': name, 'Address': address})
+                            unique_businesses.add((name, address))
+                            new_business_count += 1
+                            print(f"Collected: {name}, {address}")
+                        else:
+                            print(f"Invalid address format: {address}")
+
+                    last_processed_index = i
 
                 except StaleElementReferenceException:
                     print(f"Stale element encountered for business {name}, retrying...")
@@ -130,37 +132,56 @@ def get_businesses(location, existing_data):
     driver.quit()
     return business_list, len(business_list), new_business_count
 
+
+def is_valid_address_format(address):
+    # Updated regex pattern for address validation
+    pattern = r'^\d+.*,\s[A-Za-z ]+,\s[A-Za-z]{2}\s\d{5}(-\d{4})?$'
+    return bool(re.match(pattern, address))
+
+
+# Example usage
+address = "123 Main Street, Anytown, NY 12345"
+if is_valid_address_format(address):
+    print(f"'{address}' is in a valid format.")
+else:
+    print(f"'{address}' is not in a valid format.")
+
+
 def read_existing_data(file_path):
     try:
-        workbook = load_workbook(filename=file_path)
-        sheet = workbook.active
-        # Directly access the values as they are not Cell objects anymore
-        existing_data = {(row[0], row[1]) for row in sheet.iter_rows(min_row=2, values_only=True)}
+        # Read the Excel file into a DataFrame
+        df = pd.read_excel(file_path, usecols=['Name', 'Address'])
+
+        # Create a set of concatenated name and address for fast lookup
+        existing_data = set(df.apply(lambda row: f"{row['Name']}{row['Address']}", axis=1))
         return existing_data
+
     except FileNotFoundError:
-        # File doesn't exist, return empty set
         print(f"FileNotFoundError {file_path}")
         return set()
 
+
 def save_to_excel(business_list, file_path="Businesses.xlsx"):
-    # Check if the Excel file already exists
+    # Create a DataFrame from the new business list
+    new_data_df = pd.DataFrame(business_list)
+
     try:
-        wb = load_workbook(file_path)
-        ws = wb.active
+        # Read the existing Excel file into a DataFrame
+        existing_df = pd.read_excel(file_path)
+
+        # Combine new and existing data
+        updated_df = pd.concat([existing_df, new_data_df], ignore_index=True)
+
+        # Drop duplicates based on 'Name' and 'Address' columns
+        updated_df.drop_duplicates(subset=['Name', 'Address'], keep='first', inplace=True)
+
     except FileNotFoundError:
-        # Create a new workbook if the file doesn't exist
-        wb = Workbook()
-        ws = wb.active
-        ws.append(["Business Name", "Address"])
+        # If the file doesn't exist, use new data as the DataFrame
+        updated_df = new_data_df
 
-    # Append new business data
-    for business in business_list:
-        ws.append([business['Name'], business['Address']])
+    # Save the updated DataFrame to an Excel file
+    updated_df.to_excel(file_path, index=False)
 
-    # Adjust column widths
-    ws.column_dimensions['A'].width = 45
-    ws.column_dimensions['B'].width = 60
-    wb.save(file_path)
 
 if __name__ == "__main__":
     file_path = "Businesses.xlsx"
