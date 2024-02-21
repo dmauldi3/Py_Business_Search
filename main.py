@@ -2,7 +2,8 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
+from selenium.common.exceptions import StaleElementReferenceException, TimeoutException, NoSuchElementException, \
+    WebDriverException
 from selenium.webdriver.chrome.options import Options
 import pandas as pd
 from openpyxl import load_workbook
@@ -33,9 +34,23 @@ def get_lat_long(location):
 # Type in City, State or Zip to search area
 City = "Houston, TX"
 latitude, longitude = get_lat_long(City)
+if latitude is None or longitude is None:
+    print("Stopping the execution as Latitude or Longitude couldn't be obtained")
+    import sys
+    sys.exit(0)
+
 search_keyword = "granite countertops"  # Add this line to set your search keyword
 print(f"Searching for {search_keyword} businesses in:", City)
-Search_Attempts = 50
+Search_Attempts = 1
+
+
+
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+
+# Maximum time to wait (in seconds)
+MAX_WAIT = 10
 
 
 def get_businesses(location, existing_data):
@@ -48,6 +63,7 @@ def get_businesses(location, existing_data):
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--window-size=2560,1440")
     driver = webdriver.Chrome(options=chrome_options)
+    driver.implicitly_wait(MAX_WAIT)
 
     # driver = webdriver.Chrome()
 
@@ -57,9 +73,6 @@ def get_businesses(location, existing_data):
     base_url = f'https://www.google.com/maps/search/{search_keyword.replace(" ", "+")}/@{latitude},{longitude},15z/data=!3m1!4b1!4m2!2m1!6e6'
     print(f"URL: {base_url}")
     driver.get(base_url)
-
-    # Set up an explicit wait to handle dynamic page elements
-    wait = WebDriverWait(driver, 10)
 
     # Initialize variables for storing business data and controlling the scroll loop
     business_list = []
@@ -73,7 +86,7 @@ def get_businesses(location, existing_data):
     while scroll_attempts < max_scroll_attempts:
         print(f"Scroll attempt: {scroll_attempts}")
         driver.execute_script(f"window.scrollBy(0, {scroll_height});")
-        time.sleep(Time_delay)  # Wait for new content to load
+        wait = WebDriverWait(driver, MAX_WAIT)
 
         try:
             business_links = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "a.hfpxzc")))
@@ -120,6 +133,10 @@ def get_businesses(location, existing_data):
                 except TimeoutException:
                     print(f"Timeout encountered while fetching address for {name}")
                     continue
+                except NoSuchElementException:
+                    print("Couldn't find the web element.")
+                except WebDriverException:
+                    print("A WebDriver exception occurred.")
 
         except TimeoutException:
             print("Timeout waiting for new elements, attempting to scroll again.")
