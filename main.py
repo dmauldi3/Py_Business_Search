@@ -1,18 +1,24 @@
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import StaleElementReferenceException, TimeoutException, NoSuchElementException, \
     WebDriverException
 from selenium.webdriver.chrome.options import Options
 import pandas as pd
-from openpyxl import load_workbook
-from openpyxl import Workbook
 import time
 from geopy.geocoders import Nominatim
 import geopy
 import re
+import tkinter as tk
+from tkinter import filedialog
+import pickle
+import threading
 
+
+
+# Define global variables for the UI Entry widgets
+excelFilePath = ""
+entry_location = None
+entry_keyword = None
+status_label = None
 
 def get_lat_long(location):
     try:
@@ -30,20 +36,7 @@ def get_lat_long(location):
         print(f"Error during geocoding: {e}")
         return None, None
 
-
-# Type in City, State or Zip to search area
-City = "Houston, TX"
-latitude, longitude = get_lat_long(City)
-if latitude is None or longitude is None:
-    print("Stopping the execution as Latitude or Longitude couldn't be obtained")
-    import sys
-    sys.exit(0)
-
-search_keyword = "granite countertops"  # Add this line to set your search keyword
-print(f"Searching for {search_keyword} businesses in:", City)
 Search_Attempts = 1
-
-
 
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
@@ -53,7 +46,20 @@ from selenium.webdriver.support import expected_conditions as EC
 MAX_WAIT = 10
 
 
-def get_businesses(location, existing_data):
+def is_valid_address_format(address):
+    # Updated regex pattern for address validation
+    pattern = r'^\d+.*,\s[A-Za-z ]+,\s[A-Za-z]{2}\s\d{5}(-\d{4})?$'
+    return bool(re.match(pattern, address))
+
+
+# Example usage
+address = "123 Main Street, Anytown, NY 12345"
+if is_valid_address_format(address):
+    print(f"'{address}' is in a valid format.")
+else:
+    print(f"'{address}' is not in a valid format.")
+
+def get_businesses(location, search_keyword, existing_data):
     latitude, longitude = get_lat_long(location)
     if latitude is None or longitude is None:
         return []
@@ -72,6 +78,7 @@ def get_businesses(location, existing_data):
     # Construct the URL and print it for debugging
     base_url = f'https://www.google.com/maps/search/{search_keyword.replace(" ", "+")}/@{latitude},{longitude},15z/data=!3m1!4b1!4m2!2m1!6e6'
     print(f"URL: {base_url}")
+    set_status_message("Searching for businesses now")
     driver.get(base_url)
 
     # Initialize variables for storing business data and controlling the scroll loop
@@ -91,6 +98,7 @@ def get_businesses(location, existing_data):
         try:
             business_links = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "a.hfpxzc")))
             print(f"Number of business links found: {len(business_links)}")
+
 
             # Start processing from the last processed index + 1
             for i in range(last_processed_index + 1, len(business_links)):
@@ -148,21 +156,6 @@ def get_businesses(location, existing_data):
     driver.quit()
     return business_list, len(business_list), new_business_count
 
-
-def is_valid_address_format(address):
-    # Updated regex pattern for address validation
-    pattern = r'^\d+.*,\s[A-Za-z ]+,\s[A-Za-z]{2}\s\d{5}(-\d{4})?$'
-    return bool(re.match(pattern, address))
-
-
-# Example usage
-address = "123 Main Street, Anytown, NY 12345"
-if is_valid_address_format(address):
-    print(f"'{address}' is in a valid format.")
-else:
-    print(f"'{address}' is not in a valid format.")
-
-
 def read_existing_data(file_path):
     try:
         # Read the Excel file into a DataFrame
@@ -178,38 +171,143 @@ def read_existing_data(file_path):
 
 
 def save_to_excel(business_list, file_path="Businesses.xlsx"):
-    # Create a DataFrame from the new business list
-    new_data_df = pd.DataFrame(business_list)
-
     try:
-        # Read the existing Excel file into a DataFrame
-        existing_df = pd.read_excel(file_path)
+        if not file_path.endswith('.xlsx'):
+            print("Invalid file path provided.")
+            return
+        new_data_df = pd.DataFrame(business_list)
 
-        # Combine new and existing data
-        updated_df = pd.concat([existing_df, new_data_df], ignore_index=True)
+        try:
+            existing_df = pd.read_excel(file_path)
+            updated_df = pd.concat([existing_df, new_data_df], ignore_index=True)
+            updated_df.drop_duplicates(subset=['Name', 'Address'], keep='first', inplace=True)
 
-        # Drop duplicates based on 'Name' and 'Address' columns
-        updated_df.drop_duplicates(subset=['Name', 'Address'], keep='first', inplace=True)
+        except FileNotFoundError:
+            updated_df = new_data_df
 
-    except FileNotFoundError:
-        # If the file doesn't exist, use new data as the DataFrame
-        updated_df = new_data_df
+        #print(f"Data to be written to Excel: \n{updated_df}")  # Add this
+        updated_df.to_excel(file_path, index=False)
+        print("Data has been written to Excel.")  # And this
 
-    # Save the updated DataFrame to an Excel file
-    updated_df.to_excel(file_path, index=False)
+    except Exception as e:
+        print("Error occurred in save_to_excel: ", repr(e))
+
+
+
+def set_status_message(message):
+    def _set_status_message():
+        status_label.config(text=message)
+
+    root.after(100, _set_status_message)
+
+
+def run_script():
+    global excelFilePath, entry_location, entry_keyword, run_button
+    # Disable the button while the script is running
+    run_button.config(state="disabled")
+    threading.Thread(target=run_script_thread, args=()).start()
+
+
+def run_script_thread():
+    global excelFilePath, entry_location, entry_keyword
+    try:
+        # Get user input
+        search_keyword = entry_keyword.get()
+        City = entry_location.get()
+
+        latitude, longitude = get_lat_long(City)
+        if latitude is None or longitude is None:
+            print("Stopping the execution as Latitude or Longitude couldn't be obtained")
+            return
+
+        # Existing data
+        existing_data = read_existing_data(excelFilePath)
+        # print(f"Existing data: {existing_data}") # added prints for debugging
+        initial_unique_count = len(existing_data)
+
+        # Get businesses
+        businesses, _, _ = get_businesses(City, search_keyword, existing_data)
+        print(f"Businesses: {businesses}")  # added prints for debugging
+
+        # Save, update data and print results
+        if businesses:
+            # Save locations, keywords, and file paths to a pickle file
+            with open('previous_inputs.pkl', 'wb') as f:
+                pickle.dump({
+                    'location': City,
+                    'keyword': search_keyword,
+                    'excel_file_path': excelFilePath,
+                }, f)
+                print(f"Data has been saved to previous_inputs.pkl with the excel file path: {excelFilePath}")
+
+            if excelFilePath != '':
+                save_to_excel(businesses, excelFilePath)
+                updated_data = read_existing_data(excelFilePath)
+                print(f"Number of new businesses added: {len(updated_data) - initial_unique_count}")
+                # messagebox.showerror("Error", f"An error occurred: {e}")
+                set_status_message(f"Number of new businesses added: {len(updated_data) - initial_unique_count}")
+
+            else:
+                print("No new businesses found.")
+        else:
+            print("No new businesses found.")
+    except Exception as e:
+        print(f"Exception in run_script_thread: {e}")
+    finally:
+        # Re-enable the button when the script is done
+        def reenable_button():
+            run_button.config(state="normal")
+        root.after(100, reenable_button)
 
 
 if __name__ == "__main__":
-    file_path = "Businesses.xlsx"
-    existing_data = read_existing_data(file_path)
-    initial_unique_count = len(existing_data)
+    # Create the main Tkinter window
+    root = tk.Tk()
+    root.geometry('200x200')
 
-    businesses, _, _ = get_businesses(City, existing_data)
-    if businesses:
-        save_to_excel(businesses, file_path)
+    # Create label and text entry for Keyword
+    tk.Label(root, text="Keyword:").pack()
+    entry_keyword = tk.Entry(root)
+    entry_keyword.pack()
 
-        # read the data again after update
-        updated_data = read_existing_data(file_path)
-        print(f"Number of new businesses added: {len(updated_data) - initial_unique_count}")
-    else:
-        print("No new businesses found.")
+    # Create label and text entry for Location
+    tk.Label(root, text="Location:").pack()
+    entry_location = tk.Entry(root)
+    entry_location.pack()
+
+    # Load previous inputs if they exist
+    previous_inputs = {'location': '', 'keyword': '', 'excel_file_path': ''}
+    try:
+        with open('previous_inputs.pkl', 'rb') as f:
+            previous_inputs = pickle.load(f)
+    except:
+        pass
+
+    # Create a status label to display messages
+    status_label = tk.Label(root, text="")
+    status_label.pack()
+
+    # Insert previous inputs into entry fields
+    entry_keyword.insert(0, previous_inputs['keyword'])
+    entry_location.insert(0, previous_inputs['location'])
+    excelFilePath = previous_inputs['excel_file_path']
+
+
+
+
+    def Set_excel_file():
+        global excelFilePath
+        excelFilePath = tk.filedialog.askopenfilename(initialdir="/", title="Select file",
+                                               filetypes=(("Excel files", "*.xlsx"), ("all files", "*.*")))
+        print(f"Chosen file path: {excelFilePath}")  # for debugging
+
+    # Create "Set" button for selecting Excel file
+    Set_button = tk.Button(root, text="Set Excel File Path", command=Set_excel_file)
+    Set_button.pack()
+
+    # Create a button that will run the main scraping logic when clicked
+    run_button = tk.Button(root, text="Search", command=run_script)
+    run_button.pack()
+
+    # Running the main loop
+    root.mainloop()
