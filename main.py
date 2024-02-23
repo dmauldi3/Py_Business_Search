@@ -8,7 +8,7 @@ from geopy.geocoders import Nominatim
 import geopy
 import re
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, font
 import pickle
 import threading
 from ttkthemes import ThemedStyle
@@ -266,35 +266,44 @@ def run_script_thread():
 if __name__ == "__main__":
     # Create the main Tkinter window
     root = tk.Tk()
-    root.geometry('300x200')  # Set window size
-    # Set the window title
-    root.title("Py Search")
+    root.geometry('300x300')  # Set window size
+    root.title("Py Search")  # Set the window title
 
     try:
-        # Update the path to the location of the Py_Search.ico file
         root.iconbitmap(r'C:\Users\danie\PycharmProjects\pythonProject\ICON.ico')
     except Exception as e:
         print(f"Error setting icon: {e}")
 
     try:
-        root.configure(background='#353535')  # Example color code for a dark background
+        root.configure(background='#353535')
         style = ThemedStyle(root)
         style.set_theme("equilux")
     except Exception as e:
         print(f"Error setting theme: {e}")
 
-    # Configure a custom style for the labels
-    style.configure('Custom.TLabel', background='#353535', foreground='white')
+    # Set custom styles
+    custom_font = font.nametofont("TkDefaultFont")
+    custom_font.configure(size=14)
+    style.configure('Custom.TLabel', background='#353535', foreground='white', font=custom_font)
+    style.configure('Custom.TButton', font=custom_font)
+    style.configure('Custom.TEntry', font=custom_font)
 
-    # Create label and text entry for Keyword
-    ttk.Label(root, text="Keyword:", style='Custom.TLabel').pack()  # Apply custom style
-    entry_keyword = ttk.Entry(root)
-    entry_keyword.pack()
+    # Configure grid
+    root.columnconfigure(0, weight=1)
+    for i in range(6):
+        root.rowconfigure(i, weight=1)
 
-    # Create label and text entry for Location
-    ttk.Label(root, text="Location:", style='Custom.TLabel').pack()  # Apply custom style
-    entry_location = ttk.Entry(root)
-    entry_location.pack()
+    # Create widgets
+    ttk.Label(root, text="Keyword:", style='Custom.TLabel').grid(row=0, column=0, sticky='ew')
+    entry_keyword = ttk.Entry(root, style='Custom.TEntry', width=20)
+    entry_keyword.grid(row=1, column=0, padx=10, pady=5, sticky='ew')
+
+    ttk.Label(root, text="Location:", style='Custom.TLabel').grid(row=2, column=0, sticky='ew')
+    entry_location = ttk.Entry(root, style='Custom.TEntry', width=20)
+    entry_location.grid(row=3, column=0, padx=10, pady=5, sticky='ew')
+
+    status_label = ttk.Label(root, text="", style='Custom.TLabel')
+    status_label.grid(row=4, column=0, sticky='ew')
 
     # Load previous inputs if they exist
     previous_inputs = {'location': '', 'keyword': '', 'excel_file_path': ''}
@@ -304,34 +313,28 @@ if __name__ == "__main__":
     except:
         pass
 
-    # Create a status label to display messages
-    status_label = ttk.Label(root, text="", style='Custom.TLabel')
-    status_label.pack()
-
-    # Insert previous inputs into entry fields
     entry_keyword.insert(0, previous_inputs['keyword'])
     entry_location.insert(0, previous_inputs['location'])
     excelFilePath = previous_inputs['excel_file_path']
-
 
     def Set_excel_file():
         global excelFilePath
         temp_file_path = tk.filedialog.askopenfilename(initialdir="/", title="Select file",
                                                        filetypes=(("Excel files", "*.xlsx"), ("all files", "*.*")))
-        # If user pressed Cancel, the temp_file_path will be an empty string, and we will keep using the old excelFilePath
-        # Otherwise, we update the excelFilePath to the new file selected by the user
         if temp_file_path != '':
             excelFilePath = temp_file_path
-        print(f"Chosen file path: {excelFilePath}")  # for debugging
+        print(f"Chosen file path: {excelFilePath}")
+
+    Set_button = ttk.Button(root, text="Set Excel File Path", command=Set_excel_file, style='Custom.TButton')
+    Set_button.grid(row=5, column=0, padx=10, pady=0, sticky='ew')
 
 
-    # Create "Set" button for selecting Excel file
-    Set_button = ttk.Button(root, text="Set Excel File Path", command=Set_excel_file)
-    Set_button.pack()
+    def run_script():
+        # Implementation of your run_script function
+        pass
 
-    # Create a button that will run the main scraping logic when clicked
-    run_button = ttk.Button(root, text="Search", command=run_script)
-    run_button.pack()
+    run_button = ttk.Button(root, text="Search", command=run_script, style='Custom.TButton')
+    run_button.grid(row=6, column=0, padx=10, pady=10, sticky='ew')
 
-    # Running the main loop
     root.mainloop()
+
