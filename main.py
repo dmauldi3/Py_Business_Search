@@ -11,6 +11,9 @@ import tkinter as tk
 from tkinter import filedialog
 import pickle
 import threading
+from ttkthemes import ThemedStyle
+from tkinter import ttk
+
 
 
 
@@ -263,16 +266,34 @@ def run_script_thread():
 if __name__ == "__main__":
     # Create the main Tkinter window
     root = tk.Tk()
-    root.geometry('200x200')
+    root.geometry('300x200')  # Set window size
+    # Set the window title
+    root.title("Py Search")
+
+    try:
+        # Update the path to the location of the Py_Search.ico file
+        root.iconbitmap(r'C:\Users\danie\PycharmProjects\pythonProject\ICON.ico')
+    except Exception as e:
+        print(f"Error setting icon: {e}")
+
+    try:
+        root.configure(background='#353535')  # Example color code for a dark background
+        style = ThemedStyle(root)
+        style.set_theme("equilux")
+    except Exception as e:
+        print(f"Error setting theme: {e}")
+
+    # Configure a custom style for the labels
+    style.configure('Custom.TLabel', background='#353535', foreground='white')
 
     # Create label and text entry for Keyword
-    tk.Label(root, text="Keyword:").pack()
-    entry_keyword = tk.Entry(root)
+    ttk.Label(root, text="Keyword:", style='Custom.TLabel').pack()  # Apply custom style
+    entry_keyword = ttk.Entry(root)
     entry_keyword.pack()
 
     # Create label and text entry for Location
-    tk.Label(root, text="Location:").pack()
-    entry_location = tk.Entry(root)
+    ttk.Label(root, text="Location:", style='Custom.TLabel').pack()  # Apply custom style
+    entry_location = ttk.Entry(root)
     entry_location.pack()
 
     # Load previous inputs if they exist
@@ -284,7 +305,7 @@ if __name__ == "__main__":
         pass
 
     # Create a status label to display messages
-    status_label = tk.Label(root, text="")
+    status_label = ttk.Label(root, text="", style='Custom.TLabel')
     status_label.pack()
 
     # Insert previous inputs into entry fields
@@ -293,20 +314,23 @@ if __name__ == "__main__":
     excelFilePath = previous_inputs['excel_file_path']
 
 
-
-
     def Set_excel_file():
         global excelFilePath
-        excelFilePath = tk.filedialog.askopenfilename(initialdir="/", title="Select file",
-                                               filetypes=(("Excel files", "*.xlsx"), ("all files", "*.*")))
+        temp_file_path = tk.filedialog.askopenfilename(initialdir="/", title="Select file",
+                                                       filetypes=(("Excel files", "*.xlsx"), ("all files", "*.*")))
+        # If user pressed Cancel, the temp_file_path will be an empty string, and we will keep using the old excelFilePath
+        # Otherwise, we update the excelFilePath to the new file selected by the user
+        if temp_file_path != '':
+            excelFilePath = temp_file_path
         print(f"Chosen file path: {excelFilePath}")  # for debugging
 
+
     # Create "Set" button for selecting Excel file
-    Set_button = tk.Button(root, text="Set Excel File Path", command=Set_excel_file)
+    Set_button = ttk.Button(root, text="Set Excel File Path", command=Set_excel_file)
     Set_button.pack()
 
     # Create a button that will run the main scraping logic when clicked
-    run_button = tk.Button(root, text="Search", command=run_script)
+    run_button = ttk.Button(root, text="Search", command=run_script)
     run_button.pack()
 
     # Running the main loop
