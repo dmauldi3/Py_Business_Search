@@ -266,7 +266,7 @@ def run_script_thread():
 if __name__ == "__main__":
     # Create the main Tkinter window
     root = tk.Tk()
-    root.geometry('300x300')  # Set window size
+    root.geometry('300x250')  # Set window size
     root.title("Py Search")  # Set the window title
 
     try:
