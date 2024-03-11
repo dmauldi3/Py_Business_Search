@@ -159,17 +159,38 @@ def get_businesses(location, search_keyword, existing_data):
     driver.quit()
     return business_list, len(business_list), new_business_count
 
+
 def read_existing_data(file_path):
     try:
+        print(f"Reading excel data from {file_path}")
+
         # Read the Excel file into a DataFrame
-        df = pd.read_excel(file_path, usecols=['Name', 'Address'])
+        df = pd.read_excel(file_path)
 
-        # Create a set of concatenated name and address for fast lookup
-        existing_data = set(df.apply(lambda row: f"{row['Name']}{row['Address']}", axis=1))
+        # Check if the DataFrame is empty
+        if df.empty:
+            print('The Excel file is blank.')
+            return set()
+
+        # Rename the relevant columns if they exist
+        column_mapping = {}
+        if 'Your Current Name Column Header' in df.columns:
+            column_mapping['Your Current Name Column Header'] = 'Name'
+        if 'Your Current Address Column Header' in df.columns:
+            column_mapping['Your Current Address Column Header'] = 'Address'
+        df.rename(columns=column_mapping, inplace=True)
+
+        print("Renamed the relevant columns to 'Name' and 'Address'")
+
+        # Constructing the existing_data set
+        existing_data = set(df['Name'] + ' ' + df['Address'])
+
         return existing_data
-
     except FileNotFoundError:
-        print(f"FileNotFoundError {file_path}")
+        print(f"FileNotFoundError: {file_path}")
+        return set()
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
         return set()
 
 
@@ -266,7 +287,7 @@ def run_script_thread():
 if __name__ == "__main__":
     # Create the main Tkinter window
     root = tk.Tk()
-    root.geometry('300x250')  # Set window size
+    root.geometry('350x250')  # Set window size
     root.title("Py Search")  # Set the window title
 
     try:
@@ -329,9 +350,7 @@ if __name__ == "__main__":
     Set_button.grid(row=5, column=0, padx=10, pady=0, sticky='ew')
 
 
-    def run_script():
-        # Implementation of your run_script function
-        pass
+
 
     run_button = ttk.Button(root, text="Search", command=run_script, style='Custom.TButton')
     run_button.grid(row=6, column=0, padx=10, pady=10, sticky='ew')
