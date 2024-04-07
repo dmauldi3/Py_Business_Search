@@ -31,6 +31,7 @@ def get_lat_long(location):
             return location.latitude, location.longitude
         else:
             print("Location not found")
+            set_status_message("Could not find City or Zip")
             return None, None
     except geopy.exc.GeocoderServiceError as e:
         print(f"Geocoder service error: {e}")
