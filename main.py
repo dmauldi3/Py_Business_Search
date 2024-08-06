@@ -40,7 +40,8 @@ def get_lat_long(location):
         print(f"Error during geocoding: {e}")
         return None, None
 
-Search_Attempts = 1
+#Number of times you want the program to scroll through pages
+Search_Attempts = 50
 
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
@@ -98,6 +99,7 @@ def get_businesses(location, search_keyword, existing_data):
         print(f"Scroll attempt: {scroll_attempts}")
         driver.execute_script(f"window.scrollBy(0, {scroll_height});")
         wait = WebDriverWait(driver, MAX_WAIT)
+
 
         try:
             business_links = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "a.hfpxzc")))
@@ -300,6 +302,9 @@ if __name__ == "__main__":
         root.configure(background='#353535')
         style = ThemedStyle(root)
         style.set_theme("equilux")
+        # Change the background of the highlight part and the color of the text
+        style.configure('Custom.TEntry', fieldbackground='white', foreground='white')
+
     except Exception as e:
         print(f"Error setting theme: {e}")
 
@@ -315,14 +320,22 @@ if __name__ == "__main__":
     for i in range(6):
         root.rowconfigure(i, weight=1)
 
-    # Create widgets
+    # ~~~~~~~~~~~~Create widgets~~~~~~~~~~~~~~
+    # Keyword Header
     ttk.Label(root, text="Keyword:", style='Custom.TLabel').grid(row=0, column=0, sticky='ew')
+    # Keyword Textbox
     entry_keyword = ttk.Entry(root, style='Custom.TEntry', width=20)
     entry_keyword.grid(row=1, column=0, padx=10, pady=5, sticky='ew')
 
+    # Location Header
     ttk.Label(root, text="Location:", style='Custom.TLabel').grid(row=2, column=0, sticky='ew')
+    # Location Textbox
     entry_location = ttk.Entry(root, style='Custom.TEntry', width=20)
     entry_location.grid(row=3, column=0, padx=10, pady=5, sticky='ew')
+    entry_location['state'] = 'normal'  # or 'readonly', 'disabled'
+    entry_location.focus_set()
+
+
 
     status_label = ttk.Label(root, text="", style='Custom.TLabel')
     status_label.grid(row=4, column=0, sticky='ew')
