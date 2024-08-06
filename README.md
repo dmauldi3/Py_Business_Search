@@ -1,6 +1,6 @@
 # Py Business Search
 
-Py Business Search is a Python application designed to streamline the process of finding and cataloging business information based on specific keywords and locations. Using Selenium for web scraping and pandas for data handling, this tool is an invaluable asset for businesses and researchers looking to compile comprehensive lists of companies in particular niches or areas.
+Py Business Search is a Python application designed to streamline the process of finding and cataloging business information based on specific keywords and locations. Using Selenium for web automation and pandas for data handling, this tool is an invaluable asset for businesses and researchers looking to compile comprehensive lists of companies in particular niches or areas.
 
 ## Features
 
@@ -22,13 +22,13 @@ To run Py Business Search, you will need the following:
 - Tkinter (usually comes pre-installed with Python)
 - ttkthemes (`pip install ttkthemes`)
 
-You will also need to have Google Chrome This is necessary for Selenium to interact with Google Chrome.
+You will also need to have ChromeDriver compatible with your version of Chrome. This is necessary for Selenium to interact with the browser.
 
 ## Installation
 
-1. Clone the repository or download the files.
-2. Ensure all the required modules listed above are installed.
-3. Run the script with Python.
+1. Download the newest release.
+2. Extract the installation folder.
+3. Run the `Setup.EXE` installer.
 
 ## Usage
 
@@ -40,8 +40,8 @@ You will also need to have Google Chrome This is necessary for Selenium to inter
 
 ## Disclaimer
 
-- Py Business Search is a web scraping tool. Web scraping may be subject to legal and ethical considerations depending on the data being scraped and how it is used. Users of Py Business Search should ensure that they are in compliance with any relevant laws and website terms of service.
-- **Legal Responsibility:** The creators of Py Business Search are not responsible for any legal consequences that arise from the use of this software. Users assume full responsibility for the use of this tool and any legal implications their actions may incur.
+- **Ethical and Legal Considerations:** Py Business Search is a tool that automates the process of collecting publicly available business information. Users should ensure they comply with relevant laws and website terms of service. This software is provided for educational and research purposes only. It is the user's responsibility to ensure that their use of the tool adheres to all applicable laws and ethical guidelines.
+- **Legal Responsibility:** The creators of Py Business Search are not responsible for any legal consequences that arise from the use of this software. Users assume full responsibility for their use of this tool and any legal implications that may result.
 
 ## Contributions
 
