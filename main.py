@@ -133,7 +133,7 @@ def get_businesses(location, search_keyword, existing_data):
                             business_list.append({'Name': name, 'Address': address})
                             unique_businesses.add((name, address))
                             new_business_count += 1
-                            print(f"Collected: {name}, {address}")
+                            print(f"Found: {name}, {address}")
                             set_status_message(f"Collected: {name}")
                         else:
                             print(f"Invalid address format: {address}")
@@ -185,7 +185,7 @@ def read_existing_data(file_path):
         df.rename(columns=column_mapping, inplace=True)
 
         print("Renamed the relevant columns to 'Name' and 'Address'")
-        set_status_message(f"Renamed Excel columns")
+        set_status_message("Renamed Excel columns")
 
         # Constructing the existing_data set
         existing_data = set(df['Name'] + ' ' + df['Address'])
@@ -203,6 +203,7 @@ def save_to_excel(business_list, file_path="Businesses.xlsx"):
     try:
         if not file_path.endswith('.xlsx'):
             print("Invalid file path provided.")
+            set_status_message("Invalid Excel file path")
             return
         new_data_df = pd.DataFrame(business_list)
 
