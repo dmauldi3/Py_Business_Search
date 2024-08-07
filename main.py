@@ -23,6 +23,7 @@ excelFilePath = ""
 entry_location = None
 entry_keyword = None
 status_label = None
+stop_event = threading.Event()
 
 
 def get_lat_long(location):
@@ -65,6 +66,7 @@ else:
 
 
 def get_businesses(location, search_keyword, existing_data):
+    global stop_flag
     latitude, longitude = get_lat_long(location)
     if latitude is None or longitude is None:
         return []
@@ -95,7 +97,7 @@ def get_businesses(location, search_keyword, existing_data):
     scroll_height = 2500  # Scroll height
     last_processed_index = -1  # Last processed business index
 
-    while scroll_attempts < max_scroll_attempts:
+    while not stop_event.is_set() and scroll_attempts < max_scroll_attempts:
         print(f"Scroll attempt: {scroll_attempts}")
         driver.execute_script(f"window.scrollBy(0, {scroll_height});")
         wait = WebDriverWait(driver, MAX_WAIT)
@@ -106,6 +108,9 @@ def get_businesses(location, search_keyword, existing_data):
 
             # Start processing from the last processed index + 1
             for i in range(last_processed_index + 1, len(business_links)):
+                if stop_event.is_set():
+                    set_status_message("Stopping")
+                    break
                 name = None
                 try:
                     business = business_links[i]
@@ -133,8 +138,8 @@ def get_businesses(location, search_keyword, existing_data):
                             business_list.append({'Name': name, 'Address': address})
                             unique_businesses.add((name, address))
                             new_business_count += 1
-                            print(f"Found: {name}, {address}")
-                            set_status_message(f"Collected: {name}")
+                            print(f"Collected: {name}, {address}")
+                            set_status_message(f"Found: {name}")
                         else:
                             print(f"Invalid address format: {address}")
 
@@ -231,14 +236,20 @@ def set_status_message(message):
 
 
 def run_script():
-    global excelFilePath, entry_location, entry_keyword, run_button
-    # Disable the button while the script is running
-    run_button.config(state="disabled")
-    threading.Thread(target=run_script_thread, args=()).start()
+    global excelFilePath, entry_location, entry_keyword, run_button, stop_event
+    # If the task is not running, start it
+    if run_button["text"] == "Search":
+        stop_event.clear()
+        run_button.config(text="Stop")
+        threading.Thread(target=run_script_thread, args=()).start()
+    # If the task is running, stop it
+    elif run_button["text"] == "Stop":
+        stop_event.set()
 
 
 def run_script_thread():
     global excelFilePath, entry_location, entry_keyword
+
     try:
         # Get user input
         search_keyword = entry_keyword.get()
@@ -286,15 +297,18 @@ def run_script_thread():
         # Re-enable the button when the script is done
         def reenable_button():
             run_button.config(state="normal")
-
         root.after(100, reenable_button)
+        def set_button_search():
+            run_button.config(text="Search")
+            run_button.config(state="normal")  # Enable the button for searching again
+        root.after(100, set_button_search)
 
 
 if __name__ == "__main__":
     # Create the main Tkinter window
     root = tk.Tk()
     root.geometry('350x250')  # Set window size
-    root.title("Py Search")  # Set the window title
+    root.title("Py Business Search")  # Set the window title
 
     try:
         root.iconbitmap(r'C:\Users\danie\PycharmProjects\pythonProject\ICON.ico')
