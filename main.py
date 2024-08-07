@@ -134,6 +134,7 @@ def get_businesses(location, search_keyword, existing_data):
                             unique_businesses.add((name, address))
                             new_business_count += 1
                             print(f"Collected: {name}, {address}")
+                            set_status_message(f"Collected: {name}")
                         else:
                             print(f"Invalid address format: {address}")
 
@@ -164,14 +165,15 @@ def get_businesses(location, search_keyword, existing_data):
 
 def read_existing_data(file_path):
     try:
-        print(f"Reading excel data from {file_path}")
+        print(f"Reading Excel data from {file_path}")
+        set_status_message("Checking excel data format")
 
         # Read the Excel file into a DataFrame
         df = pd.read_excel(file_path)
 
         # Check if the DataFrame is empty
         if df.empty:
-            print('The Excel file is blank.')
+            print('The Excel file is blank')
             return set()
 
         # Rename the relevant columns if they exist
@@ -183,6 +185,7 @@ def read_existing_data(file_path):
         df.rename(columns=column_mapping, inplace=True)
 
         print("Renamed the relevant columns to 'Name' and 'Address'")
+        set_status_message(f"Renamed Excel columns")
 
         # Constructing the existing_data set
         existing_data = set(df['Name'] + ' ' + df['Address'])
