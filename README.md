@@ -1,6 +1,6 @@
 # Py Business Search
 
-Py Business Search is a Python application designed to streamline the process of finding and cataloging business information based on specific keywords and locations. Using Selenium for web automation and pandas for data handling, this tool is an invaluable asset for businesses and researchers looking to compile comprehensive lists of companies in particular niches or areas.
+Py Business Search is a Python application designed to streamline the process of finding and cataloging business information based on specific keywords and locations. Using Selenium for web automation and pandas for data handling, this tool is an invaluable asset for researchers looking to compile comprehensive lists of companies in particular niches or areas.
 
 ## Features
 
